@@ -4,6 +4,7 @@ volumes:
 networks:
   banco:
   web:
+  fila:
 services:
   db:
     image: postgres:9.6
@@ -40,8 +41,37 @@ services:
       - ./app:/app
     working_dir: /app
     command: bash ./app.sh
+    environment:
+      - DB_HOST
+      - DB_USER
+      - DB_NAME
+      - DB_PASSWORD
+      - REDIS_HOST
+      - REDIS_PORT
+      - REDIS_DB
     depends_on:
       - db
+      - queue
     networks:
       - banco
       - web
+      - fila
+  queue:
+    image: redis:3.2
+    container_name: queue
+    networks:
+      - fila
+  worker:
+    build: worker
+    working_dir: /worker
+    volumes:
+      - ./worker:/worker
+    command: worker.py
+    environment:
+      - REDIS_HOST
+      - REDIS_PORT
+      - REDIS_DB
+    networks:
+      - fila
+    depends_on:
+      - queue
